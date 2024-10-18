@@ -1,0 +1,29 @@
+Data collected as part of Edwin Viramontes's Semester by the Bay internship project. Expanding work done by Brian Ulaski on beach wrack.,,
+,,
+columnName,type,values
+site,text,name of general location
+date,date,YYYY-MM-DD
+timeStart,time,HH:MM (AKDT/AKST)
+timeEnd,time,HH:MM (AKDT/AKST)
+elevation,numeric,meters
+transectID,text,unique value assigned to each transect location
+point,numeric,meter mark along 50 m transect line
+totalCover,numeric,total percent of 0.5 x 0.5 quadrat filled with wrack
+eelgrass,numeric,percent of 0.5 x 0.5 quadrat filled with seagrass wrack
+macroalgae,numeric,percent of 0.5 x 0.5 quadrat filled with algal wrack
+algalComposition,text,"abbreviations for macroalgae separated by | 
+AGCL = Agarum clathratum
+FUGA = Fucus gardineri
+NELU  = Nereocystis luetkeana
+ULVA = Ulva spp.
+DESP = Desmarestia spp.
+ALMA = Alaria marginata
+Brown = Unidentified brown alga
+Red = Unidentified red alga
+Green = Unidentified green alga"
+terrestrial,numeric,percent of 0.5 x 0.5 quadrat filled with terrestrial wrack
+humanDebris,numeric,percent of 0.5 x 0.5 quadrat filled with human debris
+wrackDepth,numeric,deepest depth of wrack in cm
+wrackWidth,numeric,width centered on transect point of wrackline in cm
+dataCollectors,text,name of data collectors
+notes,text,free text
