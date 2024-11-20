@@ -78,10 +78,19 @@ all_update <- updated_old %>%
                                             "Aug",
                                             "Sep",
                                             "Oct")))
-
-ggplot(all_update) +
-  geom_point(aes(x = `SAMPLE MONTH`, y = `WRACK AREA (m^2)`,
-             color = SITE))
+all_update %>%
+  mutate(MO = case_when(`SAMPLE MONTH` == 'Mar' ~ 3,
+                        `SAMPLE MONTH` == 'Apr' ~ 4,
+                        `SAMPLE MONTH` == 'May' ~ 5,
+                        `SAMPLE MONTH` == 'Jun' ~ 6,
+                        `SAMPLE MONTH` == 'Jul' ~ 7,
+                        `SAMPLE MONTH` == 'Aug' ~ 8,
+                        `SAMPLE MONTH` == 'Sep' ~ 9,
+                        `SAMPLE MONTH` == 'Oct' ~ 10)) %>%
+ggplot(aes(x = MO, y = `WRACK AREA (m^2)`,
+                       color = SITE)) +
+  geom_point() +
+  geom_smooth(method = "lm")
 
 # calculate mean wrack surface area
 wrackData %>%
@@ -90,6 +99,27 @@ wrackData %>%
   mutate(area = 20 * ((mean_width * 0.01) * 50)) %>%
   ggplot() +
   geom_boxplot(aes(x = Site, y = area)) 
+
+
+# Bishops only mean wrack area - old data
+
+old_data %>%
+  filter(SITE == "BP") %>%
+  mutate(MO = case_when(`SAMPLE MONTH` == 'Mar' ~ 3,
+                        `SAMPLE MONTH` == 'Apr' ~ 4,
+                        `SAMPLE MONTH` == 'May' ~ 5,
+                        `SAMPLE MONTH` == 'Jun' ~ 6,
+                        `SAMPLE MONTH` == 'Jul' ~ 7,
+                        `SAMPLE MONTH` == 'Aug' ~ 8,
+                        `SAMPLE MONTH` == 'Sep' ~ 9,
+                        `SAMPLE MONTH` == 'Oct' ~ 10)) %>%
+  pivot_longer(`WRACK WIDTH (m) #1`:`WRACK WIDTH (m) #10`,
+               names_to = "Quadrat",
+               values_to = "Area") %>%
+  select(MO, SITE, Quadrat, Area) %>%
+  ggplot(aes(x = MO, y = Area)) +
+  geom_point() +
+  geom_smooth(method = "lm")
 
 ############### SUBSECTION HERE
 
