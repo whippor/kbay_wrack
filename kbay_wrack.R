@@ -40,6 +40,7 @@
 
 library(tidyverse)
 library(viridis)
+library(vegan)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # READ IN AND PREPARE DATA                                                     ####
@@ -270,6 +271,104 @@ bishops_comp_extra <- bishops_comp %>%
 
 
  new_bishops_comp <- match_columns(bishops_comp_extra, col1:col9, SAGR:PLGA)
+
+ # values only for PERMANOVA and nMDS
+presabs_only <- new_bishops_comp %>%
+   select(totalCover, SAGR:PLGA) 
+tot <- rowSums(presabs_only)
+presabs_only <- presabs_only[tot > 0, ]
+ 
+presabs_mds <- metaMDS(presabs_only, distance = "altGower")
+
+
+
+# extract points from the nMDS for plotting
+presabs_mds_points <- presabs_mds$points
+
+# make plot points into a dataframe that ggplot2 can read
+presabs_mds_points <- data.frame(presabs_mds_points)
+
+# join plot points with taxonomy
+plot_data_presabs <- data.frame(presabs_mds_points, new_bishops_comp[tot > 0, c(1,3,4)])
+
+library(plyr)
+chulls_tax <- ddply(plot_data_presabs, .(Transect), function(df) df[chull(df$MDS1, df$MDS2), ])
+detach(package:plyr)
+
+# all quads plot
+plot_data_presabs %>%
+  mutate(Transect = factor(Transect, levels = c("BB1",
+                                                "BB2",
+                                                "BB3",
+                                                "BB4",
+                                                "BB5",
+                                                "BB6",
+                                                "BB7",
+                                                "BB8",
+                                                "BB9",
+                                                "BB10",
+                                                "BB11",
+                                                "BB12",
+                                                "BB13"))) %>%
+ggplot(aes(x=MDS1, y=MDS2, 
+                          color = Transect)) +  
+  labs(x = "nMDS1", y = "nMDS2") +
+  theme_classic() + 
+  geom_point(pch = 19, size = 4) + 
+  scale_color_viridis(discrete = TRUE, option = "C", name = "transect") +
+  geom_polygon(data=chulls_tax, aes(x=MDS1, y=MDS2, group=Transect), fill=NA)
+
+
+
+
+# transect only analysis and plot
+transect_only <- data.frame(presabs_only, new_bishops_comp[tot > 0, c(1,3,4)])
+cover_means <- transect_only %>%
+  group_by(Transect) %>%
+  summarise(meanCover = mean(totalCover))
+presabs_means <- transect_only %>%
+  select(SAGR:Transect) %>%
+  group_by(Transect) %>%
+  summarise(across(SAGR:PLGA, ~ sum(.x)))
+  
+transect_only_means <- data.frame(presabs_means, cover_means) %>%
+  select(-Transect.1)
+
+tomatrix <- transect_only_means[c(1:3, 5:12),2:43]
+transect_mds <- metaMDS(tomatrix, distance = "altGower")
+
+# extract points from the nMDS for plotting
+transect_mds_points <- transect_mds$points
+
+# make plot points into a dataframe that ggplot2 can read
+transect_mds_points <- data.frame(transect_mds_points)
+
+Transect <- transect_only_means$Transect
+Transect2 <- Transect[c(1:3, 5:12)]
+# join plot points with taxonomy
+plot_data_transect <- data.frame(transect_mds_points, Transect2)
+
+
+# all quads plot
+plot_data_transect %>%
+  mutate(Transect = factor(Transect2, levels = c("BB1",
+                                                "BB2",
+                                                "BB3",
+                                                "BB4",
+                                                "BB5",
+                                                "BB6",
+                                                "BB7",
+                                                "BB8",
+                                                "BB9",
+                                                "BB10",
+                                                "BB11",
+                                                "BB13"))) %>%
+  ggplot(aes(x=MDS1, y=MDS2, 
+             color = Transect)) +  
+  labs(x = "nMDS1", y = "nMDS2") +
+  theme_classic() + 
+  geom_point(pch = 19, size = 4) + 
+  scale_color_viridis(discrete = TRUE, option = "C", name = "transect") 
 
     ############### SUBSECTION HERE
 
