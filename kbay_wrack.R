@@ -1,10 +1,10 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #                                                                                ##
 # KBay Wrack Analyses                                                            ##
-# Data are current as of 2024-10-17                                              ##
+# Data are current as of 2024-12-10                                              ##
 # Data source: Ross Whippo/NOAA Edwin Viramontes SBB                             ##
 # R code prepared by Ross Whippo                                                 ##  
-# Last updated 2024-10-17                                                        ##
+# Last updated 2024-12-10                                                        ##
 #                                                                                ##
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -13,6 +13,7 @@
 
 # Required Files (check that script is loading latest version):
 # wrackData.csv
+# 2021_otg_wrack_sa_NORTH.csv
 
 # Associated Scripts:
 # FILE.R
@@ -41,37 +42,52 @@
 library(tidyverse)
 library(viridis)
 library(vegan)
+library(ggpubr)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # READ IN AND PREPARE DATA                                                     ####
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-wrackData <- read_csv("data/wrackData.csv") # current
+wrackData <- read_csv("data/wrackData.csv", 
+                      col_types = cols(Date = col_date(format = "%m/%d/%Y"))) # current
 
-old_data <- read_csv("data/2021_otg_wrack_sa_NORTH.csv") 
+oldData <- read_csv("data/2021_otg_wrack_sa_NORTH.csv") 
+
+tides <- read_csv("data/CO-OPS_9455500_met.csv", 
+                                        col_types = cols(Date = col_date(format = "%Y/%m/%d"), 
+                                                         `Verified (m)` = col_double()))
+
+tidesMinMax <- tides %>%
+  na.exclude()
+
+wind <- read_table("data/HomerWind.csv", 
+                      col_types = cols(yr = col_character(), 
+                                       mo = col_character(), dy = col_character(), 
+                                       `m/s_1` = col_double()))
+wind <- wind %>%
+  mutate(Date = make_date(yr, mo, dy))
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # MANIPULATE DATA                                                              ####
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-updated_old <- old_data %>%
+updated_old <- oldData %>%
   select(`SAMPLE MONTH`, SITE, `WRACK AREA (m^2)`) %>%
   mutate(SITE = case_when(SITE == "BB" ~ "Bishops",
                           SITE == "BP" ~ "diamondCreek")) %>%
-  mutate(areaKM = `WRACK AREA (m^2)`*20)
+  mutate(areaKM = `WRACK AREA (m^2)`*20) %>%
   filter(SITE %in% c("Bishops", "diamondCreek"))
 
 updated_new <- wrackData %>%
   mutate(Mon = month(ymd(Date), 
                      label = TRUE,
                      abbr = TRUE)) %>%
-  group_by(Site, Mon) %>%
+  mutate(SITE = Site) %>%
+  group_by(SITE, Mon) %>%
   summarise(mean_width = mean(wrackWidth)) %>%
   mutate(`WRACK AREA (m^2)` = (mean_width * 0.01) * 50) %>%
   mutate(areaKM = `WRACK AREA (m^2)`*20) %>%
-  mutate(SITE = Site) %>%
-  ungroup() %>%
-  select(-Site)
+  ungroup()
 
 all_update <- updated_old %>%
   bind_rows(updated_new) %>%
@@ -108,10 +124,13 @@ wrackData %>%
   ggplot() +
   geom_boxplot(aes(x = Site, y = area)) 
 
+#wrackData %>%
+#  ggplot() +
+#  geom_boxplot(aes(x = Site, y = wrackWidth))
 
 # Bishops only mean wrack area - old data
 
-old_data %>%
+oldData %>%
   filter(SITE == "BP") %>%
   mutate(MO = case_when(`SAMPLE MONTH` == 'Mar' ~ 3,
                         `SAMPLE MONTH` == 'Apr' ~ 4,
@@ -130,7 +149,7 @@ old_data %>%
   geom_smooth(method = "lm")
 
 # Combine old and new mean and variation in single figure
-datedOld <- old_data %>% 
+datedOld <- oldData %>% 
   filter(SITE %in% c("BB", "BP")) %>%
   mutate(Date = ymd(rep(c("2024-03-15",
                           "2024-04-15",
@@ -184,7 +203,26 @@ datedAll %>%
                       end = 0.7) +
   scale_fill_grey() +
   theme_bw() +
-  facet_wrap(.~SITE, ncol = 1, labeller = as_labeller(site_labels)) +
+ facet_wrap(.~SITE, ncol = 1, labeller = as_labeller(site_labels)) +
+  guides(fill = FALSE) +
+  labs(x = "Month", y = m^2~km^-1)
+
+#Bishops Only
+monthlyFIG <- datedAll %>%
+  filter(SITE == "Bishops") %>%
+  ggplot(aes(x = Date, y = areaKM, color = Source, group = Source)) +
+  geom_rect(data = rect_df,
+            aes(xmin = start, xmax = end, fill = fill, ymin = -Inf, ymax = Inf),
+            alpha = 0.1, color = NA, inherit.aes = FALSE) +
+  #stat_summary(fun.data = "mean_se", size = 1) +
+  stat_summary(fun.x = "mean", size = 1, color = "black", geom = "errorbar", width = 0) +
+  stat_summary(geom = "point", size = 5) +
+  stat_summary(fun.y=mean, geom="line", aes(group = Source), size = 1) +
+  scale_color_viridis(discrete = TRUE,
+                      begin = 0.3,
+                      end = 0.7) +
+  scale_fill_grey() +
+  theme_bw() +
   guides(fill = FALSE) +
   labs(x = "Month", y = m^2~km^-1)
 
@@ -200,14 +238,17 @@ n_labels <- data.frame(sample = c("n = 50", "n = 10", "n = 60",
                          "n = 10"),
                        Source = c(seq(from = 0.5, to = 9.5, by = 1)))
 
-datedAll %>%
+varianceFIG1 <- datedAll %>%
   filter(SITE == "Bishops") %>%
   group_by(Month, Source) %>%
   summarise(Variance = sd(wrackWidth)) %>%
+  #reframe(Range = range(wrackWidth)) %>%
+  group_by(Month, Source) %>%
+  #reframe(Variance = max(Range) - min(Range)) %>%
   unite(sourceMonth, c("Source", "Month"), sep = " - ", remove = FALSE) %>%
   arrange(desc(Variance)) %>%
   ungroup() %>%
-  mutate(Sample = c("n = 50", "n = 10", "n = 60",
+  mutate(Sample = c("n = 10", "n = 90", "n = 60",
                     "n = 10", "n = 10", "n = 10",
                     "n = 20", "n = 10", "n = 10",
                     "n = 10")) %>%
@@ -218,8 +259,84 @@ datedAll %>%
                      end = 0.7) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  labs(x = "Source - Month", y = Standard~Deviation~(m^2~m^-1)) + 
+  #labs(x = "Source - Month", y = Absolute~Range~(m^width)) + 
+  labs(x = "Source - Month", y = Standard~Deviation~(wrack~width~m)) +
   geom_text(aes(label = Sample), nudge_y = 0.05)
+
+# Overall variance between datasets
+varianceFIG2 <- datedAll %>%
+  filter(SITE == "Bishops") %>%
+  group_by(Month, Source) %>%
+  summarise(Variance = sd(wrackWidth)) %>%
+  arrange(desc(Variance)) %>%
+  ungroup() %>%
+  ggplot(aes(y = Variance, x = Source, fill = Source)) +
+  geom_boxplot() + 
+  scale_fill_viridis(discrete = TRUE,
+                     begin = 0.3,
+                     end = 0.7) +
+  theme_bw() +
+  stat_summary(fun.y = "mean", group = "Source", geom="line", show.legend = FALSE) + 
+  stat_summary(geom = "point", pch = 19, size = 5, show.legend = FALSE) +
+  #theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  #labs(x = "Source - Month", y = Absolute~Range~(m^width)) + 
+  labs(x = NULL, y = Monthly~Variance~(SD~of~wrack~width~m))
+
+
+ggarrange(varianceFIG2, monthlyFIG, widths = c(1,3), common.legend = TRUE)
+
+
+
+# TIDES and Wind FIGURE
+
+# extract mean gust
+meanGust <- wind %>%
+  group_by(Date) %>%
+  summarise(meanGust = mean(`m/s_1`)) %>%
+  na.exclude()
+  
+# extract max gust
+maxGust <- wind %>%
+  group_by(Date) %>%
+  summarise(maxGust = max(`m/s_1`)) %>%
+  na.exclude()
+
+# extract mean wind
+meanWind <- wind %>%
+  group_by(Date) %>%
+  summarise(`Mean Wind (m/s)` = mean(`m/s`)) %>%
+  na.exclude()
+
+# extract max wind
+maxWind <- wind %>%
+  group_by(Date) %>%
+  summarise(maxWind = max(`m/s`)) %>%
+  na.exclude()
+
+
+tidesMinMax %>%
+  ggplot() +
+  geom_rect(data = meanWind, aes(xmin = Date,
+                                xmax = Date + 1, 
+                                ymin = -2, ymax = 10, 
+                                fill = `Mean Wind (m/s)`),
+           alpha = 0.25) +
+  scale_fill_viridis(option = "D") +
+  geom_line(aes(x = Date, y = `Verified (m)`), alpha = 0.6, linewidth = 3,
+            color = "white") +
+  theme_bw() +
+  labs(x = "Month", y = Tidal~Height) +
+  scale_y_continuous(sec.axis = sec_axis(~., name = "Wrack Width (m)")) +
+  geom_jitter(data = wrackData, aes(x = Date, y = wrackWidth/100)) +
+  geom_smooth(data = wrackData, aes(x = Date, y = wrackWidth/100), 
+              se = FALSE, color = "darkred") +
+  coord_cartesian(ylim = c(-2, 7.5)) +
+  scale_x_date(limits = as.Date(c('2024-09-01','2024-11-30'))) +
+  ylab("Tidal Height (m)")
+
+
+
+
 
 # Temporal change in wrack composition at Bishops
 
@@ -278,7 +395,7 @@ presabs_only <- new_bishops_comp %>%
 tot <- rowSums(presabs_only)
 presabs_only <- presabs_only[tot > 0, ]
  
-presabs_mds <- metaMDS(presabs_only, distance = "altGower")
+presabs_mds <- metaMDS(presabs_only, distance = "jaccard")
 
 
 
@@ -368,7 +485,7 @@ plot_data_transect %>%
   labs(x = "nMDS1", y = "nMDS2") +
   theme_classic() + 
   geom_point(pch = 19, size = 4) + 
-  scale_color_viridis(discrete = TRUE, option = "C", name = "transect") 
+  scale_color_viridis(discrete = TRUE, option = "C", name = "transect")
 
     ############### SUBSECTION HERE
 
@@ -380,3 +497,28 @@ df <- data.frame(matrix(ncol = 3, nrow = 0))
 x <- c("name", "age", "gender")
 colnames(df) <- x
 
+
+
+
+
+# Sample data
+
+data <- data.frame(
+  
+  x = 1:10,
+  
+  primary_y = runif(10, 0, 10),
+  
+  secondary_y = runif(10, 0, 50)
+  
+)
+
+
+
+# Create the plot with a secondary axis
+
+ggplot(data, aes(x = x, y = primary_y)) +
+  
+  geom_line() +
+  
+  scale_y_continuous(sec.axis = sec_axis(~ . * 5, name = "Secondary Y"))
