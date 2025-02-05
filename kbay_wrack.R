@@ -43,6 +43,8 @@ library(tidyverse)
 library(viridis)
 library(vegan)
 library(ggpubr)
+library(psych)
+library(corrr)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # READ IN AND PREPARE DATA                                                     ####
@@ -331,10 +333,201 @@ tidesMinMax %>%
   geom_smooth(data = wrackData, aes(x = Date, y = wrackWidth/100), 
               se = FALSE, color = "darkred") +
   coord_cartesian(ylim = c(-2, 7.5)) +
-  scale_x_date(limits = as.Date(c('2024-09-01','2024-11-30'))) +
+  scale_x_date(limits = as.Date(c('2024-09-18','2024-11-30'))) +
   ylab("Tidal Height (m)")
 
+# Compare mean wind versus wrack width
+WrackWindnull <- wrackData %>%
+  select(Date, wrackWidth) %>%
+  full_join(meanWind) %>%
+  group_by(wrackWidth) %>%
+  filter(is.na(wrackWidth)) %>%
+  slice(rep(1:n(), each = 10))
+WrackWindsample <- wrackData %>%
+  select(Site, Date, wrackWidth) %>%
+  full_join(meanWind)
+ WrackWind <- WrackWindsample %>%
+   full_join(WrackWindnull) %>%
+   arrange(Date)
 
+# same day
+WrackWind %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = `Mean Wind (m/s)`, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = `Mean Wind (m/s)`, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -1 day
+WrackWind %>%
+  mutate(minus1 = lag(`Mean Wind (m/s)`, 10)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus1, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus1, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -2 day
+WrackWind %>%
+  mutate(minus2 = lag(`Mean Wind (m/s)`, 20)) %>%
+  na.exclude() %>%
+  filter(Site == "Bishops") %>%
+  ggplot() +
+  geom_point(aes(x = minus2, y = wrackWidth)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus2, y = wrackWidth),
+              method = "lm") + 
+  theme_bw() +
+  xlab("Mean Wind Speed (m/s) - Two Day Offset") +
+  ylab("Wrack Width (cm)") +
+  annotate("text", label = "Pearson's Correlation = 0.433",
+           x = 9, y = 450)
+
+# -3 day
+WrackWind %>%
+  mutate(minus3 = lag(`Mean Wind (m/s)`, 30)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus3, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus3, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -4 day
+WrackWind %>%
+  mutate(minus4 = lag(`Mean Wind (m/s)`, 40)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus4, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus4, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -5 day
+WrackWind %>%
+  mutate(minus5 = lag(`Mean Wind (m/s)`, 50)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus5, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus5, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -6 day
+WrackWind %>%
+  mutate(minus6 = lag(`Mean Wind (m/s)`, 60)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus6, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus6, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -7 day
+WrackWind %>%
+  mutate(minus7 = lag(`Mean Wind (m/s)`, 70)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus7, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus7, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -8 day
+WrackWind %>%
+  mutate(minus8 = lag(`Mean Wind (m/s)`, 80)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus8, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus8, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -9 day
+WrackWind %>%
+  mutate(minus9 = lag(`Mean Wind (m/s)`, 90)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus9, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus9, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# -10 day
+WrackWind %>%
+  mutate(minus10 = lag(`Mean Wind (m/s)`, 100)) %>%
+  na.exclude() %>%
+  ggplot() +
+  geom_point(aes(x = minus10, y = wrackWidth, color = Site)) +
+  scale_color_viridis(discrete = TRUE, option = "H",
+                      begin = 0.2, end = 0.8) +
+  geom_smooth(aes(x = minus10, y = wrackWidth),
+              method = "lm") + 
+  theme_bw()
+
+# correlation between lags and tides?
+tideRange <- tidesMinMax %>%
+  group_by(Date) %>%
+  mutate(range = max(`Verified (m)`) - min(`Verified (m)`)) %>%
+  select(Date, range) %>%
+  unique()
+
+WindTideWrack <- WrackWind %>%
+  left_join(tideRange) 
+  
+params <- seq(10, 90, by = 10)
+
+#set the column names, add leading zeroes based om max(params)
+run_names <- paste0("minus", formatC(params, width = nchar(max(params)), flag = "0"))
+
+#what functions to perform
+lag_functions <- setNames(paste("dplyr::lag( ., ", params, ")"), run_names)
+#perform functions 
+OffsetAll <- WindTideWrack %>% 
+  mutate_at(vars(`Mean Wind (m/s)`, range), funs_(lag_functions ))
+
+OffsetAll %>%
+  select(`Mean Wind (m/s)`:range_minus90) %>%
+pairs.panels(stars = TRUE)
+
+allCor <- OffsetAll %>%
+  na.exclude() %>%
+  select(`Mean Wind (m/s)`:range_minus90) %>%
+  cor() %>%
+  data.frame()
+
+longCor <- allCor %>%
+  rownames_to_column() %>%
+  pivot_longer(`Mean.Wind..m.s.`:`range_minus90`) %>%
+  filter(value != 1) %>%
+  group_by(rowname, name)
+
+# Wrack wide correlations
+OffsetAll %>% 
+  select(wrackWidth, `Mean Wind (m/s)`:range_minus90) %>%
+  correlate() %>% 
+  focus(wrackWidth) 
 
 
 
