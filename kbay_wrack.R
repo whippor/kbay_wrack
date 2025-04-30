@@ -94,7 +94,9 @@ updated_new <- wrackData %>%
 all_update <- updated_old %>%
   bind_rows(updated_new) %>%
   mutate(`SAMPLE MONTH` = factor(`SAMPLE MONTH`, 
-                                 levels = c("Mar",
+                                 levels = c("Jan",
+                                            "Feb",
+                                            "Mar",
                                             "Apr",
                                             "May",
                                             "Jun",
@@ -104,7 +106,9 @@ all_update <- updated_old %>%
                                             "Oct",
                                             "Nov")))
 all_update %>%
-  mutate(MO = case_when(`SAMPLE MONTH` == 'Mar' ~ 3,
+  mutate(MO = case_when(`SAMPLE MONTH` == 'Jan' ~ 1,
+                        `SAMPLE MONTH` == 'Feb' ~ 2,
+                        `SAMPLE MONTH` == 'Mar' ~ 3,
                         `SAMPLE MONTH` == 'Apr' ~ 4,
                         `SAMPLE MONTH` == 'May' ~ 5,
                         `SAMPLE MONTH` == 'Jun' ~ 6,
@@ -179,16 +183,16 @@ datedNew <- wrackData %>%
   mutate(SITE = Site) %>%
   ungroup() %>%
   select(-Site) %>%
-  mutate(Source = "Viramontes 2024")
+  mutate(Source = "Sievers & Jared 2025")
 
 datedAll <- datedNew %>%
   bind_rows(datedOld) %>%
   mutate(Month = month(ymd(Date), label = TRUE, abbr = TRUE))
 
 rect_df <- data.frame(start = seq(as.Date("2024-03-01"), 
-                                  length.out = 10, by = "month"),
+                                  length.out = 14, by = "month"),
                       end = seq(as.Date("2024-04-01"), 
-                                length.out = 10, by = "month"),
+                                length.out = 14, by = "month"),
                       fill = c("grey80", "white"))
 
 site_labels <- c('Bishops' =  "Bishop's Beach", 
