@@ -62,10 +62,8 @@ tides <- read_csv("data/CO-OPS_9455500_met.csv",
 tidesMinMax <- tides %>%
   na.exclude()
 
-wind <- read_table("data/HomerWind.csv", 
-                      col_types = cols(yr = col_character(), 
-                                       mo = col_character(), dy = col_character(), 
-                                       `m/s_1` = col_double()))
+wind <- read_csv("data/HomerWind.csv", 
+                 col_types = cols(degT = col_double()))
 wind <- wind %>%
   mutate(Date = make_date(yr, mo, dy))
 
@@ -298,13 +296,13 @@ ggarrange(varianceFIG2, monthlyFIG, widths = c(1,3), common.legend = TRUE)
 # extract mean gust
 meanGust <- wind %>%
   group_by(Date) %>%
-  summarise(meanGust = mean(`m/s_1`)) %>%
+  summarise(meanGust = mean(speed_m_s)) %>%
   na.exclude()
   
 # extract max gust
 maxGust <- wind %>%
   group_by(Date) %>%
-  summarise(maxGust = max(`m/s_1`)) %>%
+  summarise(maxGust = max(gust_m_s)) %>%
   na.exclude()
 
 # extract mean wind
