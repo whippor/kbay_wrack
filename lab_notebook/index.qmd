@@ -1,0 +1,10 @@
+---
+title: "kbay_wrack Lab Notebook"
+format: html
+---
+
+# 📘 kbay_wrack
+
+This is the lab notebook for **kbay_wrack**.
+
+-   [Return to Central Lab Hub](../../lab_notebook_hub/index.qmd)
